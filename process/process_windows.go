@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 // Copyright © 2017-2023 Wei Shen <shenwei356@gmail.com>
@@ -33,6 +34,7 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
+	"github.com/buildkite/shellwords"
 	"github.com/elastic/go-windows"
 	"github.com/palantir/stacktrace"
 	"github.com/pkg/errors"
@@ -474,25 +476,16 @@ func getProcessEnv(processHandle syscall.Handle, params RtlUserProcessParameters
 	return env, nil
 }
 
-func getShell() (shell string) {
-	shell = os.Getenv("COMSPEC")
-	if shell == "" {
-		shell = "C:\\WINDOWS\\System32\\cmd.exe"
-	}
-	return shell
-}
-
 func getCommand(ctx context.Context, qcmd string) (command *exec.Cmd) {
-	if ctx != nil {
-		command = exec.CommandContext(ctx, getShell())
-	} else {
-		command = exec.Command(getShell())
+	words, err := shellwords.SplitBatch(qcmd)
+	if err != nil {
+		return nil
 	}
-	// from https://github.com/junegunn/fzf/blob/390b49653b441c958b82a0f78d9923aef4c1d9a2/src/util/util_windows.go
-	command.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow:    false,
-		CmdLine:       fmt.Sprintf(` /s /c "%s"`, qcmd),
-		CreationFlags: 0,
+
+	if ctx != nil {
+		command = exec.CommandContext(ctx, words[0], words[1:]...)
+	} else {
+		command = exec.Command(words[0], words[1:]...)
 	}
 	return command
 }
