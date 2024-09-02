@@ -488,11 +488,13 @@ type ProcessRecord struct {
 	signalsToSend int
 }
 
-var pidRecords = make(map[int]ProcessRecord)
+var pidRecords = sync.Map{}
 
 func getProcessRecordFromPid(pid int) (processRecord ProcessRecord, err error) {
-	processRecord, keyPresent := pidRecords[pid]
-	if !keyPresent {
+	value, keyPresent := pidRecords.Load(pid)
+	if keyPresent {
+		processRecord = value.(ProcessRecord)
+	} else {
 		processHandle, processExists, accessGranted, err := getProcess(pid)
 		if processHandle != INVALID_HANDLE && err == nil {
 			processRecord = ProcessRecord{
@@ -501,7 +503,7 @@ func getProcessRecordFromPid(pid int) (processRecord ProcessRecord, err error) {
 				processExists: processExists,
 				accessGranted: accessGranted,
 				signalsToSend: SEND_NO_SIGNAL}
-			pidRecords[pid] = processRecord
+			pidRecords.Store(pid, processRecord)
 		}
 	}
 	return
@@ -920,17 +922,22 @@ func stopChildProcesses(noStopExes []string, noKillExes []string, cleanupTime ti
 }
 
 func releaseProcessByPid(pid int) {
-	processRecord, keyPresent := pidRecords[pid]
-	if !keyPresent {
-		delete(pidRecords, processRecord.pid)
+	value, keyPresent := pidRecords.Load(pid)
+	if keyPresent {
+		processRecord := value.(ProcessRecord)
+		pidRecords.Delete(pid)
 		releaseProcessByHandle(processRecord.processHandle)
 	}
 }
 
 func releaseProcesses() {
-	for _, processRecord := range pidRecords {
-		releaseProcessByPid(processRecord.pid)
-	}
+	pidRecords.Range(func(key, value interface{}) bool {
+		processRecord, keyPresent := value.(ProcessRecord)
+		if keyPresent {
+			releaseProcessByPid(processRecord.pid)
+		}
+		return true
+	})
 }
 
 func getChildMarkerKey() string {
@@ -981,6 +988,10 @@ func (c *Command) run(opts *Options, tryNumber int) error {
 		command = getCommand(c.ctx, qcmd)
 	} else {
 		command = getCommand(nil, qcmd)
+	}
+
+	if command == nil {
+		return errors.Errorf("start cmd #%d: %s", c.ID, c.Cmd)
 	}
 
 	// mark child processes with our pid,
