@@ -1,5 +1,7 @@
 @echo off
 setlocal
 pushd "%~dp0"
-set "GOAMD64=v3"
-go build -gcflags="all=-B -C -dwarf=false" -ldflags="-s -w"
+set GOTELEMETRY=off
+set GOAMD64=v3
+go build -trimpath -gcflags="all=-B -C -dwarf=false" -ldflags="-s -w -buildid=" -buildvcs=false
+popd

@@ -25,7 +25,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/puzpuzpuz/xsync/v3"
 	"io"
+	"modernc.org/sortutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -40,7 +42,6 @@ import (
 	pb "github.com/schollz/progressbar/v3"
 	"github.com/shenwei356/go-logging"
 	psutil "github.com/shirou/gopsutil/process"
-	"modernc.org/sortutil"
 )
 
 // Log is *logging.Logger
@@ -56,6 +57,16 @@ func init() {
 		backendFormatter := logging.NewBackendFormatter(backend, logFormat)
 		logging.SetBackend(backendFormatter)
 		Log = logging.MustGetLogger("process")
+	}
+
+	if pidRecords == nil {
+		pidRecords = xsync.NewMapOfWithHasher[int, ProcessRecord](func(i int, _ uint64) uint64 {
+			// https://github.com/puzpuzpuz/xsync/?tab=readme-ov-file#map
+			h := uint64(i)
+			h = (h ^ (h >> 33)) * 0xff51afd7ed558ccd
+			h = (h ^ (h >> 33)) * 0xc4ceb9fe1a85ec53
+			return h ^ (h >> 33)
+		}, xsync.WithPresize(8), xsync.WithGrowOnly())
 	}
 }
 
@@ -488,13 +499,11 @@ type ProcessRecord struct {
 	signalsToSend int
 }
 
-var pidRecords = sync.Map{}
+var pidRecords *xsync.MapOf[int, ProcessRecord] = nil
 
 func getProcessRecordFromPid(pid int) (processRecord ProcessRecord, err error) {
-	value, keyPresent := pidRecords.Load(pid)
-	if keyPresent {
-		processRecord = value.(ProcessRecord)
-	} else {
+	processRecord, keyPresent := pidRecords.Load(pid)
+	if !keyPresent {
 		processHandle, processExists, accessGranted, err := getProcess(pid)
 		if processHandle != INVALID_HANDLE && err == nil {
 			processRecord = ProcessRecord{
@@ -922,20 +931,17 @@ func stopChildProcesses(noStopExes []string, noKillExes []string, cleanupTime ti
 }
 
 func releaseProcessByPid(pid int) {
-	value, keyPresent := pidRecords.Load(pid)
+	processRecord, keyPresent := pidRecords.Load(pid)
 	if keyPresent {
-		processRecord := value.(ProcessRecord)
 		pidRecords.Delete(pid)
 		releaseProcessByHandle(processRecord.processHandle)
 	}
 }
 
 func releaseProcesses() {
-	pidRecords.Range(func(key, value interface{}) bool {
-		processRecord, keyPresent := value.(ProcessRecord)
-		if keyPresent {
-			releaseProcessByPid(processRecord.pid)
-		}
+	pidRecords.Range(func(key int, value ProcessRecord) bool {
+		releaseProcessByHandle(value.processHandle)
+		pidRecords.Delete(key)
 		return true
 	})
 }
