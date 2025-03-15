@@ -898,6 +898,10 @@ func (c *Command) run(opts *Options, tryNumber int) error {
 		command = getCommand(nil, qcmd)
 	}
 
+	if command == nil {
+		return errors.Errorf("start cmd #%d: %s", c.ID, c.Cmd)
+	}
+
 	// mark child processes with our pid,
 	// so we can identify them later,
 	// in case we need to signal them
