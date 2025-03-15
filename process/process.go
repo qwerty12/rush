@@ -36,11 +36,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cznic/sortutil"
 	"github.com/pkg/errors"
 	pb "github.com/schollz/progressbar/v3"
 	"github.com/shenwei356/go-logging"
 	psutil "github.com/shirou/gopsutil/process"
+	"modernc.org/sortutil"
 )
 
 // Log is *logging.Logger
