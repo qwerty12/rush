@@ -477,7 +477,7 @@ type ProcessRecord struct {
 	signalsToSend int
 }
 
-var pidRecords = make(map[int]ProcessRecord)
+var pidRecords = make(map[int]ProcessRecord, 100)
 
 func getProcessRecordFromPid(pidRecordsLock *sync.Mutex, pid int) (processRecord ProcessRecord, err error) {
 	pidRecordsLock.Lock()
