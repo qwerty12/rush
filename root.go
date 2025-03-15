@@ -138,7 +138,7 @@ Preset variable (macro):
 
 		command0 := strings.Join(args, " ")
 		if command0 == "" {
-			if runtime.GOOS == "windows" {
+			if isWindows {
 				command0 = `echo {}`
 			} else {
 				command0 = `echo "{}"`
