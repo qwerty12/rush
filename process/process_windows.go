@@ -40,8 +40,6 @@ import (
 	psutil "github.com/shirou/gopsutil/process"
 )
 
-var is32bitRush bool = runtime.GOARCH == "386"
-
 var (
 	modkernel32                  = syscall.NewLazyDLL("kernel32.dll")
 	procCreateRemoteThread       = modkernel32.NewProc("CreateRemoteThread")
