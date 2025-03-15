@@ -1,3 +1,5 @@
+//go:build !386
+
 // Copyright © 2017-2023 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,28 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package main
+package process
 
-import (
-	"io"
-	"os"
-
-	colorable "github.com/mattn/go-colorable"
-	"github.com/shenwei356/go-logging"
-)
-
-var log *logging.Logger
-
-func init() {
-	logFormat := logging.MustStringFormatter(`%{time:15:04:05.000} %{color}[%{level:.4s}]%{color:reset} %{message}`)
-	var stderr io.Writer
-	if isWindows {
-		stderr = colorable.NewColorableStderr()
-	} else {
-		stderr = os.Stderr
-	}
-	backend := logging.NewLogBackend(stderr, "", 0)
-	backendFormatter := logging.NewBackendFormatter(backend, logFormat)
-	logging.SetBackend(backendFormatter)
-	log = logging.MustGetLogger("rush")
-}
+const is32bitRush bool = false
