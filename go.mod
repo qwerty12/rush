@@ -3,6 +3,7 @@ module github.com/shenwei356/rush
 go 1.24.1
 
 require (
+	github.com/buildkite/shellwords v0.0.0-20180315110454-59467a9b8e10
 	github.com/elastic/go-windows v1.0.2
 	github.com/mattn/go-colorable v0.1.14
 	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177
