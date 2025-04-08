@@ -139,6 +139,12 @@ func (c *Command) Run(opts *Options, tryNumber int) (chan string, error) {
 			// exitStatus will appear in wait cmd message
 			Log.Infof("finish cmd #%d in %s: %s", c.ID, c.Duration, c.Cmd)
 		}
+	} else {
+		if c.Err == nil && c.exitStatus == 0 {
+			if _, pkErr := c.reader.Peek(1); pkErr == nil {
+				Log.Infof("[#%d]: %s: exit status 0 but output detected", c.ID, c.Cmd)
+			}
+		}
 	}
 
 	go func() {
