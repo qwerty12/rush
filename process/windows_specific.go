@@ -18,6 +18,7 @@ var (
 	procPowerCreateRequest = modkernel32.NewProc("PowerCreateRequest")
 	procPowerSetRequest    = modkernel32.NewProc("PowerSetRequest")
 	//procPowerClearRequest  = modkernel32.NewProc("PowerClearRequest")
+	procSetThreadPriority = modkernel32.NewProc("SetThreadPriority")
 
 	powerRequest windows.Handle = windows.InvalidHandle
 	jobObject    windows.Handle
@@ -26,6 +27,7 @@ var (
 func init() {
 	takeSleepLock()
 	initJobObject()
+	applyBoost()
 }
 
 func takeSleepLock() {
@@ -87,4 +89,10 @@ func assignJob(command *exec.Cmd) {
 	if hProcess != 0 {
 		windows.AssignProcessToJobObject(jobObject, windows.Handle(hProcess))
 	}
+}
+
+func applyBoost() {
+	windows.SetPriorityClass(windows.CurrentProcess(), windows.ABOVE_NORMAL_PRIORITY_CLASS)
+	procSetThreadPriority.Call(uintptr(windows.CurrentThread()), 1) // THREAD_PRIORITY_ABOVE_NORMAL -- main thread, thanks to the magic of init()
+	windows.TimeBeginPeriod(1) // process-specific since Windows 10
 }
