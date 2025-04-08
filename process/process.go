@@ -938,10 +938,12 @@ func (c *Command) run(opts *Options, tryNumber int) error {
 		command.Stderr = os.Stderr
 	}
 
+	setCmdFlags(command) // TODO: maybe not be lazy so compilation on non-Windows works again...
 	err = command.Start()
 	if err != nil {
 		return errors.Wrapf(err, "start cmd #%d: %s", c.ID, c.Cmd)
 	}
+	assignJob(command)
 
 	var outPipe *bufio.Reader = nil
 	if !opts.ImmediateOutput {
