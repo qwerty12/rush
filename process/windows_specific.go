@@ -6,6 +6,7 @@ package process
 import (
 	"os/exec"
 	"reflect"
+	"runtime/debug"
 	"syscall"
 	"unsafe"
 
@@ -25,6 +26,7 @@ var (
 )
 
 func init() {
+	debug.SetGCPercent(1000)
 	takeSleepLock()
 	initJobObject()
 	applyBoost()
@@ -85,7 +87,7 @@ func assignJob(command *exec.Cmd) {
 		return
 	}
 
-	hProcess := reflect.ValueOf(command.Process).Elem().FieldByName("handle").Uint() // race condition, accessed bypassing the mutex, but Go is dogshit
+	hProcess := reflect.ValueOf(command.Process).Elem().FieldByName("handle").Elem().FieldByName("handle").Uint() // race condition, accessed bypassing the mutex, but Go is dogshit
 	if hProcess != 0 {
 		windows.AssignProcessToJobObject(jobObject, windows.Handle(hProcess))
 	}
@@ -94,5 +96,5 @@ func assignJob(command *exec.Cmd) {
 func applyBoost() {
 	windows.SetPriorityClass(windows.CurrentProcess(), windows.ABOVE_NORMAL_PRIORITY_CLASS)
 	procSetThreadPriority.Call(uintptr(windows.CurrentThread()), 1) // THREAD_PRIORITY_ABOVE_NORMAL -- main thread, thanks to the magic of init()
-	windows.TimeBeginPeriod(1) // process-specific since Windows 10
+	windows.TimeBeginPeriod(1)                                      // process-specific since Windows 10
 }
