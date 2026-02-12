@@ -943,7 +943,9 @@ func (c *Command) run(opts *Options, tryNumber int) error {
 	if err != nil {
 		return errors.Wrapf(err, "start cmd #%d: %s", c.ID, c.Cmd)
 	}
-	assignJob(command)
+	_ = command.Process.WithHandle(func(handle uintptr) {
+		assignJob(handle)
+	})
 
 	var outPipe *bufio.Reader = nil
 	if !opts.ImmediateOutput {
