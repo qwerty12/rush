@@ -5,7 +5,6 @@ package process
 
 import (
 	"os/exec"
-	"reflect"
 	"runtime/debug"
 	"syscall"
 	"unsafe"
@@ -82,15 +81,8 @@ func setCmdFlags(command *exec.Cmd) {
 	}
 }
 
-func assignJob(command *exec.Cmd) {
-	if jobObject == 0 {
-		return
-	}
-
-	hProcess := reflect.ValueOf(command.Process).Elem().FieldByName("handle").Elem().FieldByName("handle").Uint() // race condition, accessed bypassing the mutex, but Go is dogshit
-	if hProcess != 0 {
-		windows.AssignProcessToJobObject(jobObject, windows.Handle(hProcess))
-	}
+func assignJob(handle uintptr) {
+	windows.AssignProcessToJobObject(jobObject, windows.Handle(handle))
 }
 
 func applyBoost() {
